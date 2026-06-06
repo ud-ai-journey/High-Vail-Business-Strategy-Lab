@@ -1,0 +1,6 @@
+{
+  "name": "High Vail Business Strategy Lab",
+  "description": "Building Brands. Scaling Businesses. A specialized business growth partner that launches, designs, and builds high-growth enterprise models from scratch.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
