@@ -85,6 +85,13 @@ Generated via High Vail Strategy Lab Portal.`;
         }),
       });
 
+      if (response.status === 404) {
+        setSendSuccess(false);
+        setSendError("The backend endpoint `/api/send-email` was not found (404). This usually means the app is running on a static host (like Vercel) without our active Express container. Triggering manual fallback...");
+        triggerEmailClient();
+        return;
+      }
+
       const data = await response.json();
 
       if (response.ok) {
@@ -102,7 +109,7 @@ Generated via High Vail Strategy Lab Portal.`;
     } catch (err: any) {
       console.warn("API direct send failed, using mailto fallback:", err);
       setSendSuccess(false);
-      setSendError("Local server routing bypass active. Transitioning to system client.");
+      setSendError("Server routing bypass activated (direct connection issue). Transitioning to system client fallback.");
       triggerEmailClient(); // Safe fallback to direct client mail trigger
     } finally {
       setIsSending(false);
@@ -289,10 +296,16 @@ Generated via High Vail Strategy Lab Portal.`;
                   </>
                 ) : (
                   <>
-                    <span className="font-mono text-[9px] text-[#c6a66b] tracking-[0.3em] uppercase block">SYSTEM TRANSMITTING (MANUAL FALLBACK)</span>
-                    <h3 className="font-display font-extrabold text-xl tracking-wider text-white uppercase">BRIEFING COMPILED</h3>
+                    <span className="font-mono text-[9px] text-[#c6a66b] tracking-[0.3em] uppercase block">
+                      {sendError && sendError.includes("404") ? "STATIC HOSTING ACCESS ACTIVE" : "SYSTEM TRANSMITTING (MANUAL FALLBACK)"}
+                    </span>
+                    <h3 className="font-display font-extrabold text-xl tracking-wider text-white uppercase">
+                      {sendError && sendError.includes("404") ? "STATIC HOST DISPATCH" : "BRIEFING COMPILED"}
+                    </h3>
                     <p className="text-stone-400 text-xs font-serif italic max-w-sm mt-1 leading-relaxed">
-                      We have compiled your secure dossier and attempted a direct server dispatch. SMTP keys are currently unconfigured. Please send manually using your local client:
+                      {sendError && sendError.includes("404") 
+                        ? "This serverless/custom host (Vercel) serves a pure static frontend. We have beautifully compiled your growth dossier below—please send manually using your local email client:"
+                        : "We have compiled your secure dossier and attempted a direct server dispatch. Since SMTP keys are unconfigured on this host node, please send manually using your local client:"}
                     </p>
                   </>
                 )}
