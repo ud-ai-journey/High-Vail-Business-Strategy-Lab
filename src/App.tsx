@@ -27,9 +27,12 @@ import ProjectModal from './components/ProjectModal';
 import LeadModal from './components/LeadModal';
 import InteractiveComparison from './components/InteractiveComparison';
 import CountUp from './components/CountUp';
+import ProjectCarousel from './components/ProjectCarousel';
+import WhyUsVerdict from './components/WhyUsVerdict';
 import { portfolioProjects, servicesList } from './data';
 import { Project } from './types';
 import { cinematicAudio } from './utils/audio';
+import IntroCinematic from './components/IntroCinematic';
 
 interface Card3DProps {
   project: Project;
@@ -148,6 +151,22 @@ export default function App() {
   // Modals status
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+  const [showIntro, setShowIntro] = useState<boolean>(() => {
+    try {
+      return !sessionStorage.getItem('high_vail_intro_complete');
+    } catch {
+      return true;
+    }
+  });
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    try {
+      sessionStorage.setItem('high_vail_intro_complete', 'true');
+    } catch (e) {
+      // Safe fallback
+    }
+  };
 
   // Scroll tracker reference
   const lastScrollYRef = useRef(0);
@@ -308,6 +327,17 @@ export default function App() {
             {/* ================= SECTION 01 ================= */}
             <div className="absolute w-full h-full flex flex-col items-center justify-center px-6" style={getSectionStyle(0)}>
               <div className="max-w-4xl text-center flex flex-col items-center">
+                {/* Large Gilded Brand Emblem */}
+                <div className="w-20 h-20 relative rounded-full overflow-hidden bg-black/80 border border-[#c6a66b]/30 flex items-center justify-center p-3 mb-6 shadow-[0_0_30px_rgba(198,166,107,0.15)] animate-pulse">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-[#c6a66b]/10 to-transparent pointer-events-none" />
+                  <img 
+                    referrerPolicy="no-referrer"
+                    src="https://res.cloudinary.com/ddatd5ruz/image/upload/v1780762580/ChatGPT_Image_Jun_6_2026_09_41_43_PM_nemvis.png" 
+                    alt="High Vail Luxury Emblem" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
                 {/* Gold Prestige tag */}
                 <span className="font-mono text-[10px] md:text-xs text-[#c6a66b] tracking-[0.4em] uppercase mb-4 opacity-80 flex items-center gap-2">
                   <span className="w-1.5 h-1.5 bg-gradient-to-r from-[#c6a66b] to-[#d4af37] rotate-45" />
@@ -428,22 +458,16 @@ export default function App() {
               </div>
             </div>
 
-            {/* ================= SECTION 04 (PORTFOLIO GRID) ================= */}
+            {/* ================= SECTION 04 (PORTFOLIO CAROUSEL) ================= */}
             <div className="absolute w-full h-full flex flex-col items-center justify-center px-4" style={getSectionStyle(3)}>
-              <div className="max-w-[1100px] w-full text-center flex flex-col items-center">
+              <div className="max-w-3xl w-full text-center flex flex-col items-center">
                 <span className="font-mono text-[10px] text-[#c6a66b] tracking-[0.3em] uppercase mb-1">
                   SELECTED INVENTIONS
                 </span>
-                <h2 className="font-display font-black text-5xl md:text-7xl text-stone-200/20 tracking-widest uppercase mb-10 select-none">
+                <h2 className="font-display font-black text-5xl md:text-7xl text-stone-200/20 tracking-widest uppercase mb-8 select-none">
                   PORTFOLIO
                 </h2>
-
-                {/* Portfolio Horizontal Stream */}
-                <div className="flex flex-wrap justify-center gap-4 max-h-[460px] overflow-y-auto sm:overflow-visible w-full py-2 pointer-events-auto">
-                  {portfolioProjects.map((project) => (
-                    <Card3D key={project.id} project={project} onSelect={setSelectedProject} />
-                  ))}
-                </div>
+                <ProjectCarousel onSelect={setSelectedProject} />
               </div>
             </div>
 
@@ -544,9 +568,9 @@ export default function App() {
                   </strong>"
                 </p>
 
-                {/* Integrated comparison widget */}
-                <div className="w-full max-h-[340px] overflow-y-auto md:overflow-visible pointer-events-auto">
-                  <InteractiveComparison />
+                {/* Verdict accordion — hover to reveal the gap */}
+                <div className="w-full pointer-events-auto">
+                  <WhyUsVerdict />
                 </div>
               </div>
             </div>
@@ -657,6 +681,7 @@ export default function App() {
           scrollProgress={progressRatio}
           onNavigateToSection={navigateToSection}
           onOpenContact={() => setIsLeadModalOpen(true)}
+          onReplayIntro={() => setShowIntro(true)}
         />
         
       </div>
@@ -667,6 +692,12 @@ export default function App() {
       </div>
 
       {/* ================= MODAL SYSTEMS ================= */}
+      <AnimatePresence>
+        {showIntro && (
+          <IntroCinematic onComplete={handleIntroComplete} />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {selectedProject && (
           <ProjectModal

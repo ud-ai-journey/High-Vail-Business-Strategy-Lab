@@ -9,6 +9,7 @@ interface HUDProps {
   scrollProgress: number; // 0 to 1
   onNavigateToSection: (sectionIdx: number) => void;
   onOpenContact: () => void;
+  onReplayIntro?: () => void;
 }
 
 export default function HUD({
@@ -17,6 +18,7 @@ export default function HUD({
   scrollProgress,
   onNavigateToSection,
   onOpenContact,
+  onReplayIntro,
 }: HUDProps) {
   const [time, setTime] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -89,7 +91,20 @@ export default function HUD({
       <header className="fixed top-0 left-0 right-0 h-24 z-50 px-8 md:px-16 flex items-center justify-between select-none bg-gradient-to-b from-[#050505] to-transparent">
         {/* Top Left Label */}
         <div className="flex items-center gap-3">
-          <div className="w-2.5 h-2.5 bg-gradient-to-tr from-[#c6a66b] to-[#d4af37] rotate-45 animate-pulse" />
+          <button
+            onClick={() => onReplayIntro?.()}
+            className="w-10 h-10 relative rounded-lg overflow-hidden bg-black/60 border border-white/10 hover:border-[#c6a66b]/60 flex items-center justify-center p-0.5 group cursor-pointer pointer-events-auto transition-all focus:outline-none"
+            title="Replay Brand Cinematic intro"
+          >
+            {/* Ambient gold glow behind logo */}
+            <div className="absolute inset-0 bg-[#c6a66b]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <img 
+              referrerPolicy="no-referrer"
+              src="https://res.cloudinary.com/ddatd5ruz/image/upload/v1780762580/ChatGPT_Image_Jun_6_2026_09_41_43_PM_nemvis.png" 
+              alt="High Vail Brand Mark" 
+              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" 
+            />
+          </button>
           <div className="flex flex-col">
             <span className="font-mono text-[10px] tracking-[0.25em] text-[#c6a66b]">HIGH VAIL</span>
             <span className="font-sans font-extrabold text-[13px] tracking-[0.15em] text-white">STRATEGY LAB</span>

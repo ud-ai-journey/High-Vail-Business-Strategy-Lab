@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Sparkles, TrendingUp, CheckCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Sparkles, CheckCircle, ArrowRight, ShieldCheck, Copy, Mail, ExternalLink, Check } from 'lucide-react';
 
 interface LeadModalProps {
   isOpen: boolean;
@@ -11,19 +11,79 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     company: '',
     website: '',
-    revenue: 'under-100k',
+    revenue: 'under-10l',
     message: '',
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [dossierCopied, setDossierCopied] = useState(false);
+  const [emailCopied, setEmailCopied] = useState(false);
 
   if (!isOpen) return null;
 
+  const targetEmail = 'highvailbusinessstrategylab@gmail.com';
+
+  const getFormattedDossier = () => {
+    const revenueLabels: Record<string, string> = {
+      'under-10l': 'Under ₹10 Lakhs Annual Revenue (INR)',
+      '10l-50l': '₹10 Lakhs - ₹50 Lakhs Annual Revenue (INR)',
+      '50l-2cr': '₹50 Lakhs - ₹2 Crores Annual Revenue (INR)',
+      'above-2cr': 'Above ₹2 Crores Annual Revenue (INR)'
+    };
+    const revenueValue = revenueLabels[formData.revenue] || formData.revenue;
+
+    return `HIGH VAIL BUSINESS STRATEGY LAB - SECURE BRIEFING REQUEST
+------------------------------------------------------------
+RECIPIENT (TO)        : ${targetEmail}
+SENDER COPY (FROM)    : ${targetEmail}
+------------------------------------------------------------
+FOUNDER / OPERATOR    : ${formData.name}
+USER DIRECT EMAIL     : ${formData.email}
+USER PHONE CONTACT    : ${formData.phone}
+ENTERPRISE NAME       : ${formData.company || 'Not Specified'}
+CURRENT PORTAL URL    : ${formData.website || 'Not Specified'}
+REVENUE MILESTONE     : ${revenueValue}
+ESTIMATED START LINE  : Immediate Action Required
+
+GROWTH BOTTLENECK ANALYSIS:
+------------------------------------------------------------
+${formData.message || 'No additional details provided.'}
+------------------------------------------------------------
+Generated via High Vail Strategy Lab Portal.`;
+  };
+
+  const triggerEmailClient = () => {
+    const subject = `High Vail Strategy Lab Briefing: ${formData.company || 'New Venture'}`;
+    const mailtoUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(getFormattedDossier())}`;
+    
+    // Attempt to open mail app safely
+    window.location.href = mailtoUrl;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) return;
+    if (!formData.name || !formData.email || !formData.phone) return;
     setIsSubmitted(true);
+    
+    // Auto-trigger client immediately on submit
+    triggerEmailClient();
+  };
+
+  const copyToClipboard = async (text: string, type: 'dossier' | 'email') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === 'dossier') {
+        setDossierCopied(true);
+        setTimeout(() => setDossierCopied(false), 2000);
+      } else {
+        setEmailCopied(true);
+        setTimeout(() => setEmailCopied(false), 2000);
+      }
+    } catch (err) {
+      console.warn('Clipboard write fallback needed');
+    }
   };
 
   return (
@@ -32,7 +92,7 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-lg bg-[#090909] border border-white/10 rounded-xl overflow-hidden relative"
+        className="w-full max-w-lg bg-[#090909] border border-white/10 rounded-xl overflow-hidden relative shadow-[0_20px_50px_rgba(198,166,107,0.15)] animate-fade-in"
       >
         {/* Decorative corner ticks */}
         <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#c6a66b]" />
@@ -43,15 +103,15 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
         {/* Global Modal Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-neutral-400 hover:text-white transition-all cursor-pointer focus:outline-none"
+          className="absolute top-4 right-4 p-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-neutral-400 hover:text-white transition-all cursor-pointer focus:outline-none z-30"
         >
           <X className="w-4 h-4" />
         </button>
 
         <AnimatePresence mode="wait">
           {!isSubmitted ? (
-            <form onSubmit={handleSubmit} className="p-6 sm:p-8 flex flex-col gap-5">
-              <div className="text-center mb-2">
+            <form onSubmit={handleSubmit} className="p-6 sm:p-8 flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+              <div className="text-center mb-1">
                 <div className="inline-flex items-center gap-1.5 bg-[#c6a66b]/10 border border-[#c6a66b]/25 px-2.5 py-1 rounded-full mb-3">
                   <Sparkles className="w-3.5 h-3.5 text-[#c6a66b]" />
                   <span className="font-mono text-[9px] font-bold text-[#c6a66b] uppercase tracking-widest">INITIATE GROWTH LAB ROUTINE</span>
@@ -76,17 +136,30 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
                   />
                 </div>
 
-                {/* Email */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-neutral-400 uppercase tracking-widest">DIRECT SECURE EMAIL *</label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="bg-white/5 border border-white/10 p-2.5 rounded text-white focus:outline-none focus:border-[#c6a66b] transition-colors"
-                    placeholder="e.g. john@company.com"
-                  />
+                {/* Contact Coordinates (Email & Phone side-by-side) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-neutral-400 uppercase tracking-widest">DIRECT SECURE EMAIL *</label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="bg-white/5 border border-white/10 p-2.5 rounded text-white focus:outline-none focus:border-[#c6a66b] transition-colors"
+                      placeholder="e.g. founder@brand.com"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-neutral-400 uppercase tracking-widest">PHONE CONTACT (PCONTACT) *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="bg-white/5 border border-white/10 p-2.5 rounded text-white focus:outline-none focus:border-[#c6a66b] transition-colors"
+                      placeholder="e.g. +91 98765 43210"
+                    />
+                  </div>
                 </div>
 
                 {/* Company Name & Website */}
@@ -113,18 +186,18 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
                   </div>
                 </div>
 
-                {/* Target Range */}
+                {/* Target Range in INR */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-neutral-400 uppercase tracking-widest">CURRENT ANNUAL REVENUE TARGET</label>
+                  <label className="text-neutral-400 uppercase tracking-widest">CURRENT ANNUAL REVENUE TARGET (INR)</label>
                   <select
                     value={formData.revenue}
                     onChange={(e) => setFormData({ ...formData, revenue: e.target.value })}
                     className="bg-white/5 border border-white/10 p-2.5 rounded text-neutral-300 focus:outline-none focus:border-[#c6a66b] transition-colors select-none"
                   >
-                    <option value="under-100k" className="bg-[#090909] text-white">Under $100K ARR</option>
-                    <option value="100k-500k" className="bg-[#090909] text-white">$100K - $500K ARR</option>
-                    <option value="500k-2m" className="bg-[#090909] text-white">$500K - $2M ARR</option>
-                    <option value="above-2m" className="bg-[#090909] text-white">Above $2M ARR</option>
+                    <option value="under-10l" className="bg-[#090909] text-white">Under ₹10 Lakhs ARR</option>
+                    <option value="10l-50l" className="bg-[#090909] text-white">₹10 Lakhs - ₹50 Lakhs ARR</option>
+                    <option value="50l-2cr" className="bg-[#090909] text-white">₹50 Lakhs - ₹2 Crores ARR</option>
+                    <option value="above-2cr" className="bg-[#090909] text-white">Above ₹2 Crores ARR</option>
                   </select>
                 </div>
 
@@ -132,7 +205,7 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-neutral-400 uppercase tracking-widest">HOW CAN HIGH VAIL SCALE YOU?</label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     className="bg-white/5 border border-white/10 p-2.5 rounded text-white focus:outline-none focus:border-[#c6a66b] transition-colors resize-none"
@@ -145,7 +218,7 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
                 type="submit"
                 className="w-full bg-gradient-to-r from-[#c6a66b] to-[#d4af37] text-black font-extrabold text-xs py-3.5 rounded tracking-widest uppercase hover:shadow-[0_0_20px_rgba(198,166,107,0.4)] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2"
               >
-                DEPLOY GROWTH ARCHITECTS
+                COMPILE & SEND TO STRATEGY LAB
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
@@ -153,32 +226,86 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="p-8 text-center flex flex-col items-center gap-6"
+              className="p-6 sm:p-8 flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
             >
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2">
-                <CheckCircle className="w-8 h-8" />
-              </div>
-              <div>
-                <span className="font-mono text-[10px] text-[#c6a66b] tracking-[0.3em] uppercase block mb-1">SYSTEM LINK SECURED</span>
-                <h3 className="font-display font-extrabold text-2xl tracking-wider text-white uppercase">GROWTH ROUTINE DEPLOYED</h3>
-                <p className="text-stone-300 text-sm font-serif italic mt-3 max-w-sm mx-auto leading-relaxed">
-                  "Founder: {formData.name}, system linkage confirmed. Our chief strategist will analyze your corporate ecosystem ({formData.company || 'New Venture'}) and secure direct contact via {formData.email} within 12 hours."
+              <div className="text-center flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-1">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                <span className="font-mono text-[9px] text-[#c6a66b] tracking-[0.3em] uppercase block">SYSTEM TRANSMITTING</span>
+                <h3 className="font-display font-extrabold text-xl tracking-wider text-white uppercase">BRIEFING INITIATED</h3>
+                <p className="text-stone-400 text-xs font-serif italic max-w-sm mt-1 leading-relaxed">
+                  We have constructed your secure briefing. It is being transmitted directly to our Chief Strategy Officer at:
                 </p>
-              </div>
-
-              <div className="w-full border-t border-white/10 pt-4 flex flex-col items-center gap-2">
-                <div className="flex items-center gap-1.5 text-[11px] font-mono text-stone-400">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  HIGH-SECURITY DISCRETION GUARANTEED
+                <div className="flex items-center gap-2 bg-white/[0.04] border border-white/5 px-3 py-1.5 rounded mt-1 max-w-full">
+                  <span className="font-mono text-[10px] text-white truncate max-w-[240px] sm:max-w-none font-bold">
+                    {targetEmail}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(targetEmail, 'email')}
+                    className="p-1 text-neutral-400 hover:text-[#e4c281] transition-colors cursor-pointer"
+                    title="Copy Email Address"
+                  >
+                    {emailCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
               </div>
 
-              <button
-                onClick={onClose}
-                className="bg-white/5 border border-white/10 text-white font-mono text-xs px-6 py-2.5 rounded hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
-              >
-                RETURN TO LAB
-              </button>
+              {/* Dossier Preview Block */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[8px] text-neutral-500 uppercase tracking-widest font-black">
+                    SECURE BRIEF DOSSIER FILE
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(getFormattedDossier(), 'dossier')}
+                    className="font-mono text-[8.5px] text-[#c6a66b] hover:text-[#e4c281] flex items-center gap-1 transition-colors cursor-pointer uppercase"
+                  >
+                    {dossierCopied ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        COPIED
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        COPY FULL DOSSIER
+                      </>
+                    )}
+                  </button>
+                </div>
+                <pre className="font-mono text-[9.5px] bg-[#050505] text-neutral-300 p-3 rounded-lg border border-white/5 overflow-x-auto whitespace-pre leading-relaxed max-h-41 scrollbar-thin select-text">
+                  {getFormattedDossier()}
+                </pre>
+              </div>
+
+              {/* Secure Delivery Actions */}
+              <div className="flex flex-col gap-2.5 mt-1">
+                <button
+                  onClick={triggerEmailClient}
+                  className="w-full bg-gradient-to-r from-[#c6a66b] to-[#d4af37] text-black font-extrabold text-xs py-3 rounded tracking-widest uppercase hover:shadow-[0_0_15px_rgba(198,166,107,0.3)] transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Mail className="w-4 h-4" />
+                  RE-LAUNCH SECURE EMAIL CLIENT
+                </button>
+
+                <p className="text-neutral-500 text-[10px] font-sans text-center px-4 leading-relaxed">
+                  If your system email client didn't launch automatically, use the buttons above to <strong className="text-neutral-300">Copy the Dossier</strong> and send it directly to our secure inbox.
+                </p>
+              </div>
+
+              <div className="border-t border-white/10 pt-3 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[9px] font-mono text-stone-500">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  DISCRETION GUARANTEED
+                </div>
+                <button
+                  onClick={onClose}
+                  className="font-mono text-[10px] text-neutral-400 hover:text-white uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  RETURN TO LAB
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
