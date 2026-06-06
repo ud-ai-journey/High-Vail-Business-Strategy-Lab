@@ -20,6 +20,9 @@ export default function LeadModal({ isOpen, onClose }: LeadModalProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [dossierCopied, setDossierCopied] = useState(false);
   const [emailCopied, setEmailCopied] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sendSuccess, setSendSuccess] = useState<boolean | null>(null);
 
   if (!isOpen) return null;
 
@@ -62,13 +65,49 @@ Generated via High Vail Strategy Lab Portal.`;
     window.location.href = mailtoUrl;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone) return;
-    setIsSubmitted(true);
     
-    // Auto-trigger client immediately on submit
-    triggerEmailClient();
+    setIsSending(true);
+    setSendError(null);
+    setSendSuccess(null);
+
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          dossier: getFormattedDossier(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSendSuccess(true);
+      } else if (response.status === 412) {
+        // SMTP Configuration pending (App passwords not set up)
+        setSendSuccess(false);
+        setSendError(data.message || "SMTP Secret Keys pending configuration in settings.");
+        triggerEmailClient(); // Auto-launch client helper as physical fallback
+      } else {
+        setSendSuccess(false);
+        setSendError(data.message || data.error || "Automated SMTP pipeline issue encountered.");
+        triggerEmailClient(); // Auto-launch client helper as physical fallback
+      }
+    } catch (err: any) {
+      console.warn("API direct send failed, using mailto fallback:", err);
+      setSendSuccess(false);
+      setSendError("Local server routing bypass active. Transitioning to system client.");
+      triggerEmailClient(); // Safe fallback to direct client mail trigger
+    } finally {
+      setIsSending(false);
+      setIsSubmitted(true);
+    }
   };
 
   const copyToClipboard = async (text: string, type: 'dossier' | 'email') => {
@@ -216,9 +255,10 @@ Generated via High Vail Strategy Lab Portal.`;
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-[#c6a66b] to-[#d4af37] text-black font-extrabold text-xs py-3.5 rounded tracking-widest uppercase hover:shadow-[0_0_20px_rgba(198,166,107,0.4)] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2"
+                disabled={isSending}
+                className="w-full bg-gradient-to-r from-[#c6a66b] to-[#d4af37] disabled:opacity-50 text-black font-extrabold text-xs py-3.5 rounded tracking-widest uppercase hover:shadow-[0_0_20px_rgba(198,166,107,0.4)] transition-all cursor-pointer mt-2 flex items-center justify-center gap-2"
               >
-                COMPILE & SEND TO STRATEGY LAB
+                {isSending ? "DISPATCHING SECURE PILELINE..." : "COMPILE & SEND TO STRATEGY LAB"}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
@@ -229,14 +269,33 @@ Generated via High Vail Strategy Lab Portal.`;
               className="p-6 sm:p-8 flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
             >
               <div className="text-center flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-1">
-                  <CheckCircle className="w-6 h-6" />
-                </div>
-                <span className="font-mono text-[9px] text-[#c6a66b] tracking-[0.3em] uppercase block">SYSTEM TRANSMITTING</span>
-                <h3 className="font-display font-extrabold text-xl tracking-wider text-white uppercase">BRIEFING INITIATED</h3>
-                <p className="text-stone-400 text-xs font-serif italic max-w-sm mt-1 leading-relaxed">
-                  We have constructed your secure briefing. It is being transmitted directly to our Chief Strategy Officer at:
-                </p>
+                {sendSuccess ? (
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-1">
+                    <CheckCircle className="w-6 h-6 animate-pulse" />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-1">
+                    <Sparkles className="w-6 h-6 animate-pulse" />
+                  </div>
+                )}
+                
+                {sendSuccess ? (
+                  <>
+                    <span className="font-mono text-[9px] text-emerald-400 tracking-[0.3em] uppercase block">MAIL DISPATCHED SUCCESS</span>
+                    <h3 className="font-display font-extrabold text-xl tracking-wider text-white uppercase">TRANSMISSION SECURED</h3>
+                    <p className="text-stone-400 text-xs font-serif italic max-w-sm mt-1 leading-relaxed">
+                      Your business briefing has been dispatched automatically from our strategy terminal to our secure lab inbox:
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-mono text-[9px] text-[#c6a66b] tracking-[0.3em] uppercase block">SYSTEM TRANSMITTING (MANUAL FALLBACK)</span>
+                    <h3 className="font-display font-extrabold text-xl tracking-wider text-white uppercase">BRIEFING COMPILED</h3>
+                    <p className="text-stone-400 text-xs font-serif italic max-w-sm mt-1 leading-relaxed">
+                      We have compiled your secure dossier and attempted a direct server dispatch. SMTP keys are currently unconfigured. Please send manually using your local client:
+                    </p>
+                  </>
+                )}
                 <div className="flex items-center gap-2 bg-white/[0.04] border border-white/5 px-3 py-1.5 rounded mt-1 max-w-full">
                   <span className="font-mono text-[10px] text-white truncate max-w-[240px] sm:max-w-none font-bold">
                     {targetEmail}
